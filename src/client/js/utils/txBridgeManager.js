@@ -41,7 +41,7 @@ const HOP_SUPPORTED_BRIDGE_TOKENS = [
 
 const CBRIDGE_SUPPORTED_BRIDGE_TOKENS = [
   'USDC',
-  'USDT'
+  'USDT',
   // TODO This is list is longer and is dynamically available per network pair.
   // Let's keep it simple for now
   // ... "MATIC", "ETH", "WBTC"
@@ -90,21 +90,27 @@ export default {
 
     // This also controls the order they appear in the UI
 
-    if (targetChainIds.every(e => CBRIDGE_SUPPORTED_CHAINS.includes(e))) {
-      if (to.symbol === from.symbol && targetTokenIds.every(e => CBRIDGE_SUPPORTED_BRIDGE_TOKENS.includes(e))) {
-        bridges.push("cbridge");
+    if (targetChainIds.every((e) => CBRIDGE_SUPPORTED_CHAINS.includes(e))) {
+      if (
+        to.symbol === from.symbol &&
+        targetTokenIds.every((e) => CBRIDGE_SUPPORTED_BRIDGE_TOKENS.includes(e))
+      ) {
+        bridges.push('cbridge');
       }
     }
 
-    if (targetChainIds.every(e => HOP_SUPPORTED_CHAINS.includes(e))) {
-      if (to.symbol === from.symbol && targetTokenIds.every(e => HOP_SUPPORTED_BRIDGE_TOKENS.includes(e))) {
-        bridges.push("hop");
+    if (targetChainIds.every((e) => HOP_SUPPORTED_CHAINS.includes(e))) {
+      if (
+        to.symbol === from.symbol &&
+        targetTokenIds.every((e) => HOP_SUPPORTED_BRIDGE_TOKENS.includes(e))
+      ) {
+        bridges.push('hop');
       }
     }
 
-    if (targetChainIds.every(e => CONNEXT_SUPPORTED_CHAINS.includes(e))) {
+    if (targetChainIds.every((e) => CONNEXT_SUPPORTED_CHAINS.includes(e))) {
       // Connext always supported regardless of token due to the extra swap steps
-      bridges.push("connext");
+      bridges.push('connext');
     }
 
     return bridges;
@@ -118,9 +124,9 @@ export default {
     receivingAssetId,
     amountBN,
     receivingAddress,
+    sendingAssetDecimals,
   ) {
     const transactionId = getRandomBytes32();
-    const bridgeInterface = this.getBridgeInterface();
     const { bridgeOption } = Storage.swapSettings;
 
     if (bridgeOption === 'cbridge') {
@@ -132,7 +138,9 @@ export default {
         receivingAssetId,
         amountBN,
         receivingAddress,
+        sendingAssetDecimals,
       );
+
       const { maxSlippage } = estimate;
       this._queue[transactionId] = {
         bridge: bridgeOption,
@@ -144,6 +152,7 @@ export default {
         receivingAddress,
         maxSlippage,
       };
+
       return estimate;
     }
 
@@ -172,37 +181,48 @@ export default {
     const parentTransactionId = getRandomBytes32();
     this._routes[parentTransactionId] = {};
 
-    var supportedBridges = this.supportedBridges(to, toChain, from, fromChain);
+    const supportedBridges = this.supportedBridges(
+      to,
+      toChain,
+      from,
+      fromChain,
+    );
 
-    return supportedBridges.map(bridgeType => {
-      var txData = {
+    return supportedBridges.map((bridgeType) => {
+      const txData = {
         bridge: bridgeType,
         sendingChainId: +fromChain.chainId,
         sendingAssetId: from.address,
         receivingChainId: +toChain.chainId,
         receivingAssetId: to.address,
         amountBN,
-        receivingAddress
-      }
+        receivingAddress,
+      };
 
       const childTransactionId = getRandomBytes32();
       this._routes[parentTransactionId][bridgeType] = _.extend({}, txData);
       this._queue[childTransactionId] = _.extend({}, txData);
 
-      return this.getBridge(bridgeType).getEstimate(
-        childTransactionId,
-        +fromChain.chainId,
-        from.address,
-        +toChain.chainId,
-        to.address,
-        amountBN,
-        receivingAddress
-      ).then((estimate) => {
-        this._routes[parentTransactionId][bridgeType].estimate = estimate;
-        this._queue[childTransactionId].estimate = estimate;
+      return this.getBridge(bridgeType)
+        .getEstimate(
+          childTransactionId,
+          +fromChain.chainId,
+          from.address,
+          +toChain.chainId,
+          to.address,
+          amountBN,
+          receivingAddress,
+        )
+        .then((estimate) => {
+          this._routes[parentTransactionId][bridgeType].estimate = estimate;
+          this._queue[childTransactionId].estimate = estimate;
 
-        return this._routes[parentTransactionId][bridgeType];
-      });
+          if (!estimate?.hasMinBridgeAmount) {
+            this._routes[parentTransactionId][bridgeType] = null;
+          }
+
+          return this._routes[parentTransactionId][bridgeType];
+        });
     });
   },
 

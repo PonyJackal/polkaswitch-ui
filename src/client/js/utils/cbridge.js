@@ -2,6 +2,7 @@
 import { Contract } from '@ethersproject/contracts';
 import _ from 'underscore';
 import { BigNumber, constants, providers, Signer, utils } from 'ethers';
+import BN from 'bignumber.js';
 import HttpUtilis from './http';
 import EventManager from './events';
 import Wallet from './wallet';
@@ -106,6 +107,15 @@ window.CBridgeUtils = {
       return false;
     }
 
+    const sendingAsset = TokenListManager.findTokenById(sendingAssetId);
+
+    const minAmountAllowed = window.ethers.utils.parseUnits(
+      '21.0',
+      sendingAsset.decimals,
+    );
+
+    const hasMinBridgeAmount = amountBN.gt(minAmountAllowed);
+
     if (!this._client) {
       this._client = await this.initializeClient();
     }
@@ -114,7 +124,7 @@ window.CBridgeUtils = {
       receivingAssetId,
       receivingChainId,
     );
-    const sendingAsset = TokenListManager.findTokenById(sendingAssetId);
+
     const bridgeAsset = TokenListManager.findTokenById(
       sendingAssetId,
       receivingChainId,
@@ -144,6 +154,7 @@ window.CBridgeUtils = {
       transactionFee: percFee.add(baseFee),
       returnAmount: amountOut,
       maxSlippage: data.max_slippage,
+      hasMinBridgeAmount,
     };
   },
 

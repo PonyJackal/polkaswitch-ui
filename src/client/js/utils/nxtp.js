@@ -1,9 +1,7 @@
 import _ from 'underscore';
 import * as ethers from 'ethers';
 import BN from 'bignumber.js';
-import {
-  BigNumber, constants, Signer, utils
-} from 'ethers';
+import { BigNumber, constants, Signer, utils } from 'ethers';
 import {
   ActiveTransaction,
   NxtpSdk,
@@ -65,7 +63,7 @@ window.NxtpUtils = {
 
         this._sdkConfig[e.chainId] = {
           providers: e.nodeProviders,
-          subgraph: connextData?.subgraph
+          subgraph: connextData?.subgraph,
         };
       }
     });
@@ -126,12 +124,11 @@ window.NxtpUtils = {
     }
     _sdk.attach(NxtpSdkEvents.SenderTransactionPrepared, (data) => {
       console.log('SenderTransactionPrepared:', data);
-      const {
-        amount, expiry, preparedBlockNumber, ...invariant
-      } = data.txData;
+      const { amount, expiry, preparedBlockNumber, ...invariant } = data.txData;
 
       const index = this._activeTxs.findIndex(
-        (col) => col.crosschainTx.invariant.transactionId === invariant.transactionId,
+        (col) =>
+          col.crosschainTx.invariant.transactionId === invariant.transactionId,
       );
 
       if (index === -1) {
@@ -189,11 +186,10 @@ window.NxtpUtils = {
 
     _sdk.attach(NxtpSdkEvents.ReceiverTransactionPrepared, (data) => {
       console.log('ReceiverTransactionPrepared:', data);
-      const {
-        amount, expiry, preparedBlockNumber, ...invariant
-      } = data.txData;
+      const { amount, expiry, preparedBlockNumber, ...invariant } = data.txData;
       const index = this._activeTxs.findIndex(
-        (col) => col.crosschainTx.invariant.transactionId === invariant.transactionId,
+        (col) =>
+          col.crosschainTx.invariant.transactionId === invariant.transactionId,
       );
 
       if (index === -1) {
@@ -313,7 +309,6 @@ window.NxtpUtils = {
       if (item.crosschainTx.invariant.transactionId === transactionId) {
         if (crosschainTx) {
           item.crosschainTx = {
-
             ...item.crosschainTx,
             ...crosschainTx,
           };
@@ -333,7 +328,9 @@ window.NxtpUtils = {
   },
 
   removeActiveTx(transactionId) {
-    this._activeTxs = this._activeTxs.filter((t) => t.crosschainTx.invariant.transactionId !== transactionId);
+    this._activeTxs = this._activeTxs.filter(
+      (t) => t.crosschainTx.invariant.transactionId !== transactionId,
+    );
   },
 
   async getEstimate(
@@ -366,8 +363,9 @@ window.NxtpUtils = {
       receivingChain,
     );
 
-    let callToAddr; let callData; let
-      expectedReturn;
+    let callToAddr;
+    let callData;
+    let expectedReturn;
 
     // if same token on both chains, don't do getExpectedReturn
     if (bridgeAsset.address !== receivingAsset.address) {
@@ -427,6 +425,7 @@ window.NxtpUtils = {
 
     return {
       id: transactionId,
+      hasMinBridgeAmount: true,
       transactionFee: 0.0, // TODO
       returnAmount: expectedReturn
         ? expectedReturn.returnAmount
