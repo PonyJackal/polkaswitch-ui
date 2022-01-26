@@ -1,5 +1,4 @@
-import React, { Component } from 'react';
-import _ from 'underscore';
+import React from 'react';
 import classnames from 'classnames';
 import * as ethers from 'ethers';
 import numeral from 'numeral';
@@ -8,86 +7,88 @@ import dayjs from 'dayjs';
 var relativeTime = require('dayjs/plugin/relativeTime')
 dayjs.extend(relativeTime)
 
-const BigNumber = ethers.BigNumber;
-const Utils = ethers.utils;
-
 import TokenListManager from '../../utils/tokenList';
 
 import TxExplorerLink from './TxExplorerLink';
 
-export default class TxCrossChainHistoricalStatusView extends Component {
-  constructor(props) {
-    super(props);
+const Utils = ethers.utils;
+
+const TxCrossChainHistoricalStatusView = ({ data }) => {
+  const txData = data.crosschainTx;
+
+  if (!txData) {
+    return <div />;
   }
 
-  render() {
-    var txData = this.props.data.crosschainTx;
+  const sendingChain = TokenListManager.getNetworkById(
+    txData.invariant.sendingChainId,
+  );
+  const receivingChain = TokenListManager.getNetworkById(
+    txData.invariant.receivingChainId,
+  );
+  const sendingAsset = TokenListManager.findTokenById(
+    Utils.getAddress(txData.invariant.sendingAssetId),
+    sendingChain,
+  );
+  const receivingAsset = TokenListManager.findTokenById(
+    Utils.getAddress(txData.invariant.receivingAssetId),
+    receivingChain,
+  );
 
-    if (!txData) {
-      return <div />;
-    }
+  const input = numeral(
+    Utils.formatUnits(txData.sending.amount, sendingAsset.decimals),
+  ).format('0.0000a');
 
-    var sendingChain = TokenListManager.getNetworkById(
-      txData.invariant.sendingChainId,
-    );
-    var receivingChain = TokenListManager.getNetworkById(
-      txData.invariant.receivingChainId,
-    );
-    var sendingAsset = TokenListManager.findTokenById(
-      Utils.getAddress(txData.invariant.sendingAssetId),
-      sendingChain,
-    );
-    var receivingAsset = TokenListManager.findTokenById(
-      Utils.getAddress(txData.invariant.receivingAssetId),
-      receivingChain,
-    );
+  let output;
+  let icon;
+  let lang;
+  let clazz;
 
-    var input = numeral(Utils.formatUnits(txData.sending.amount, sendingAsset.decimals)).format('0.0000a');
+  if (txData.receiving?.amount) {
+    output = numeral(
+      Utils.formatUnits(txData.receiving.amount, receivingAsset.decimals),
+    ).format('0.0000a');
+  }
 
-    var output, icon, lang, clazz;
+  if (data.status === 'FULFILLED') {
+    icon = <ion-icon name="checkmark-circle" />;
+    lang = 'SWAPPED';
+    clazz = 'success';
+  } else {
+    icon = <ion-icon name="alert-circle" />;
+    lang = 'FAILED';
+    clazz = 'failed';
+  }
 
-    if (txData.receiving?.amount) {
-      output = numeral(Utils.formatUnits(txData.receiving.amount, receivingAsset.decimals)).format('0.0000a');
-    }
-
-    if (this.props.data.status === 'FULFILLED') {
-      icon = <ion-icon name="checkmark-circle"></ion-icon>;
-      lang = 'SWAPPED';
-      clazz = 'success';
-    } else {
-      icon = <ion-icon name="alert-circle"></ion-icon>;
-      lang = 'FAILED';
-      clazz = 'failed';
-    }
-
-    return (
-      <div className={classnames('level is-mobile tx-item tx-history', clazz)}>
-        <div className="level-item tx-icon">
-          <div className="icon">{icon}</div>
-        </div>
-        <div className="level-item tx-content">
+  return (
+    <div className={classnames('level is-mobile tx-item tx-history', clazz)}>
+      <div className="level-item tx-icon">
+        <div className="icon">{icon}</div>
+      </div>
+      <div className="level-item tx-content">
+        <div>
           <div>
-            <div>
-              {lang} {input} {sendingAsset.symbol} for {output}{' '}
-              {receivingAsset.symbol}
-            </div>
-            <div>
-              {sendingChain.name} &gt; {receivingChain.name}
-            </div>
-            <div>
-              <TxExplorerLink
-                chainId={receivingChain.chainId}
-                hash={this.props.data.fulfilledTxHash}
-              >
-                View on Explorer <ion-icon name="open-outline"></ion-icon>
-              </TxExplorerLink>
-            </div>
-            <div className="tx-meta">
-              {dayjs(this.props.data.preparedTimestamp * 1000).fromNow()}
-            </div>
+            {lang} {input} {sendingAsset.symbol} for {output}{' '}
+            {receivingAsset.symbol}
+          </div>
+          <div>
+            {sendingChain.name} &gt; {receivingChain.name}
+          </div>
+          <div>
+            <TxExplorerLink
+              chainId={receivingChain.chainId}
+              hash={data.fulfilledTxHash}
+            >
+              View on Explorer <ion-icon name="open-outline" />
+            </TxExplorerLink>
+          </div>
+          <div className="tx-meta">
+            {dayjs(this.props.data.preparedTimestamp * 1000).fromNow()}
           </div>
         </div>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
+
+export default TxCrossChainHistoricalStatusView;
