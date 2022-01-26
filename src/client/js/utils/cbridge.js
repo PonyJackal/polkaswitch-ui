@@ -1,3 +1,6 @@
+/* eslint-disable implicit-arrow-linebreak */
+/* eslint-disable no-return-await */
+/* eslint-disable camelcase */
 // Celer doc: https://cbridge-docs.celer.network/developer/cbridge-sdk
 import { Contract } from '@ethersproject/contracts';
 import _ from 'underscore';
@@ -84,8 +87,6 @@ window.CBridgeUtils = {
       this._client = await this.initializeClient();
     }
 
-    // const request = new GetTransferConfigsRequest();
-    // return await this._client.getTransferConfigs(request, null);
     const transferConfig = await this._client.get(
       '/v1/getTransferConfigs',
       null,
@@ -181,7 +182,6 @@ window.CBridgeUtils = {
     const sendingAsset = TokenListManager.findTokenById(sendingAssetId);
     const amountToApprove = constants.MaxUint256;
     const signer = Wallet.getProvider().getSigner();
-    console.log(sendingAsset.address);
 
     const tokenContract = new Contract(sendingAsset.address, TokenABI, signer);
     const bridgeContractAddr = await this.findBridgeContractAddress(
@@ -189,15 +189,17 @@ window.CBridgeUtils = {
     );
 
     console.debug('CBridge: start approving token');
-    /// STEP 1.1: Approve token
+    // STEP 1.1: Approve token
     const ownerAddress = await signer.getAddress();
 
     const allowance = await tokenContract.allowance(
       ownerAddress,
       bridgeContractAddr,
     );
+
     let approveTx;
-    if (BigNumber.from(allowance).lt(BigNumber.from(amountBN))) {
+
+    if (allowance.lt(amountBN)) {
       approveTx = await tokenContract.approve(
         bridgeContractAddr,
         amountToApprove,
@@ -205,14 +207,12 @@ window.CBridgeUtils = {
     }
 
     console.log('Cbridge Approved TX: ', approveTx);
-
-    // const provider = new window.ethers.providers.Web3Provider(window.ethereum);
-    // const signer = provider.getSigner();
+    // STEP 1.2: sign transaction in the contract
     const bridgeContract = new Contract(bridgeContractAddr, BridgeABI, signer);
 
     const nonce = Date.now();
 
-    const sendTxResponse = await bridgeContract.send(
+    await bridgeContract.send(
       ownerAddress,
       sendingAsset.address,
       amountBN,
@@ -221,6 +221,7 @@ window.CBridgeUtils = {
       maxSlippage,
     );
 
+    // ethereum generation hash with cBridge on-chain send tx params
     const transfer_id = window.ethers.utils.solidityKeccak256(
       [
         'address',
@@ -236,15 +237,23 @@ window.CBridgeUtils = {
         Wallet.currentAddress(), /// User's wallet address,
         sendingAsset.address, /// ETH / ERC20 token address
         amountBN.toString(), /// Send amount in String
-        receivingChainId, /// Destination chain id
-        nonce, /// Nonce
-        sendingChainId, /// Source chain id
+        receivingChainId.toString(), /// Destination chain id
+        nonce.toString(), /// Nonce
+        sendingChainId.toString(), /// Source chain id
       ],
     );
 
     return {
-      transactionHash: transfer_id,
+      transferId: transfer_id,
+      cbridge: true,
     };
+  },
+
+  async transferStepTwo(transferId) {
+    const response = await this._client.post('/v2/getTransferStatus', {
+      transfer_id: transferId,
+    });
+    return response;
   },
 
   async findBridgeContractAddress(sendingChainId) {
@@ -257,6 +266,7 @@ window.CBridgeUtils = {
     if (!chainInfo) {
       console.error('WARN: Cannot find celer bridge contract address');
     }
+
     return chainInfo.contract_addr;
   },
 };

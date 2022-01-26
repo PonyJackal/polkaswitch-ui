@@ -229,6 +229,7 @@ export default {
   transferStepOne(transactionId) {
     const bridgeInterface = this.getBridgeInterface(transactionId);
     const tx = this.getTx(transactionId);
+
     return bridgeInterface.transferStepOne(
       transactionId,
       tx.sendingChainId,
@@ -241,9 +242,14 @@ export default {
     );
   },
 
-  transferStepTwo(transactionId) {
+  transferStepTwo(transactionId, txBridgeInternalId) {
     const bridgeInterface = this.getBridgeInterface(transactionId);
     const tx = this.getTx(transactionId);
+
+    if (tx.bridge === 'cbridge') {
+      return bridgeInterface.transferStepTwo(txBridgeInternalId);
+    }
+
     return bridgeInterface.transferStepTwo(
       transactionId,
       tx.sendingChainId,
@@ -261,7 +267,7 @@ export default {
       return false;
     }
 
-    return tx.bridge === 'connext';
+    return tx.bridge === 'connext' || tx.bridge === 'cbridge';
   },
 
   getTx(nonce) {
