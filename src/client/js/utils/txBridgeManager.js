@@ -1,11 +1,7 @@
 import _ from 'underscore';
-import store from 'store';
-import BN from 'bignumber.js';
 import { BigNumber, constants, providers, Signer, utils } from 'ethers';
 
 import { getRandomBytes32 } from '@connext/nxtp-utils';
-import Wallet from './wallet';
-import swapFn from './swapFn';
 import HopUtils from './hop';
 import CBridgeUtils from './cbridge';
 import Nxtp from './nxtp';
@@ -51,6 +47,7 @@ export default {
   _signerAddress: '',
   _queue: {},
   _routes: {},
+  _genericTxHistory: [],
 
   async initialize() {},
 
@@ -272,5 +269,89 @@ export default {
 
   getTx(nonce) {
     return this._queue[nonce];
+  },
+
+  async getAllTxHistory() {
+    // TODO: Implement Hop TxHistory
+
+    const nxtpQueue = Nxtp.getAllHistoricalTxs();
+    const cBridgeQueue = await CBridgeUtils.getTxHistory();
+
+    this.buildGenericTxHistory(nxtpQueue, 'connext');
+    this.buildGenericTxHistory(cBridgeQueue, 'cbridge');
+
+    return this._genericTxHistory;
+  },
+
+  buildGenericTxHistory(bridgeTxHistory, bridge) {
+    // TODO: Implement Hop TxHistory
+
+    if (bridge === 'connext') {
+      const genericTxHistoryNxtp = bridgeTxHistory.map((tx) => ({
+        receivingAssetTokenAddr: tx.crosschainTx.invariant.receivingAssetId,
+        sendingAssetTokenAddr: tx.crosschainTx.invariant.sendingAssetId,
+        receivingChainId: tx.crosschainTx.invariant.receivingChainId,
+        sendingChainId: tx.crosschainTx.invariant.sendingChainId,
+        receiving: {
+          amount: tx.crosschainTx?.receiving?.amount,
+        },
+        fulfilledTxHash: tx?.fulfilledTxHash,
+        preparedTimestamp: tx.preparedTimestamp,
+        sending: {
+          amount: tx.crosschainTx.sending.amount,
+        },
+        bridge,
+        status: tx.status,
+        src_api_resp: tx,
+      }));
+
+      this._genericTxHistory = genericTxHistoryNxtp;
+    } else {
+      const genericTxHistoryCbridge = bridgeTxHistory.map((tx) => {
+        const hash = tx.dst_block_tx_link.split('tx/');
+        const timeStampInSeconds = Math.round(parseInt(tx.ts, 10) / 1000);
+
+        return {
+          receivingAssetTokenAddr: tx.dst_received_info.token.address,
+          receivingChainId: tx.dst_received_info.chain.id,
+          sendingAssetTokenAddr: tx.src_send_info.token.address,
+          sendingChainId: tx.src_send_info.chain.id,
+          fulfilledTxHash: hash[1],
+          preparedTimestamp: timeStampInSeconds.toString(),
+          receiving: {
+            amount: tx.dst_received_info.amount,
+          },
+          sending: {
+            amount: tx.src_send_info.amount,
+          },
+          bridge,
+          status: this.buildTxGenericStatus(tx.status),
+          src_api_resp: tx,
+        };
+      });
+
+      this._genericTxHistory = [
+        ...this._genericTxHistory,
+        ...genericTxHistoryCbridge,
+      ];
+    }
+  },
+
+  buildTxGenericStatus(status) {
+    // building generic tx status msg to our react component
+    // cBridge status ref: https://cbridge-docs.celer.network/developer/api-reference/gateway-gettransferstatus#transferhistorystatus-enum
+
+    switch (status) {
+      case 4:
+        return 'PENDING';
+      case 5:
+        return 'FULFILLED';
+      case 10:
+        return 'REFUNDED';
+      case 2:
+        return 'CANCELLED';
+      default:
+        return status;
+    }
   },
 };

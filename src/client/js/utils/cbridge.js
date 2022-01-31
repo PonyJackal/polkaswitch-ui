@@ -249,6 +249,23 @@ window.CBridgeUtils = {
     };
   },
 
+  async getTxHistory() {
+    if (!this._client) {
+      this._client = await this.initializeClient();
+    }
+
+    const config = {
+      params: {
+        addr: Wallet.currentAddress(),
+        page_size: 15,
+      },
+    };
+
+    const response = await this._client.get('/v2/transferHistory', config);
+
+    return response.data.history;
+  },
+
   async transferStepTwo(transferId) {
     const response = await this._client.post('/v2/getTransferStatus', {
       transfer_id: transferId,

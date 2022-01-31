@@ -1,3 +1,5 @@
+/* eslint-disable react/prop-types */
+
 import React from 'react';
 import classnames from 'classnames';
 import * as ethers from 'ethers';
@@ -13,25 +15,21 @@ import TxExplorerLink from './TxExplorerLink';
 
 const Utils = ethers.utils;
 
-const TxCrossChainHistoricalStatusView = ({ data }) => {
-  const txData = data.crosschainTx;
-
+const TxCrossChainHistoricalStatusView = ({ data: txData }) => {
   if (!txData) {
     return <div />;
   }
 
-  const sendingChain = TokenListManager.getNetworkById(
-    txData.invariant.sendingChainId,
-  );
+  const sendingChain = TokenListManager.getNetworkById(txData.sendingChainId);
   const receivingChain = TokenListManager.getNetworkById(
-    txData.invariant.receivingChainId,
+    txData.receivingChainId,
   );
   const sendingAsset = TokenListManager.findTokenById(
-    Utils.getAddress(txData.invariant.sendingAssetId),
+    Utils.getAddress(txData.sendingAssetTokenAddr),
     sendingChain,
   );
   const receivingAsset = TokenListManager.findTokenById(
-    Utils.getAddress(txData.invariant.receivingAssetId),
+    Utils.getAddress(txData.receivingAssetTokenAddr),
     receivingChain,
   );
 
@@ -50,7 +48,7 @@ const TxCrossChainHistoricalStatusView = ({ data }) => {
     ).format('0.0000a');
   }
 
-  if (data.status === 'FULFILLED') {
+  if (txData.status === 'FULFILLED') {
     icon = <ion-icon name="checkmark-circle" />;
     lang = 'SWAPPED';
     clazz = 'success';
@@ -77,13 +75,19 @@ const TxCrossChainHistoricalStatusView = ({ data }) => {
           <div>
             <TxExplorerLink
               chainId={receivingChain.chainId}
-              hash={data.fulfilledTxHash}
+              hash={txData.fulfilledTxHash}
             >
               View on Explorer <ion-icon name="open-outline" />
             </TxExplorerLink>
           </div>
           <div className="tx-meta">
-            {dayjs(this.props.data.preparedTimestamp * 1000).fromNow()}
+            {dayjs(txData.preparedTimestamp * 1000).fromNow()}
+            <span className="bridge-selected">
+              &nbsp;@&nbsp;
+              {txData.bridge === 'cbridge'
+                ? 'Celer Bridge'
+                : `${txData.bridge} bridge`}
+            </span>
           </div>
         </div>
       </div>

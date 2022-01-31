@@ -8,12 +8,12 @@ import dayjs from 'dayjs';
 var relativeTime = require('dayjs/plugin/relativeTime')
 dayjs.extend(relativeTime)
 
-const BigNumber = ethers.BigNumber;
-const Utils = ethers.utils;
-
 import TokenListManager from '../../utils/tokenList';
 
 import TxExplorerLink from './TxExplorerLink';
+
+const { BigNumber } = ethers;
+const Utils = ethers.utils;
 
 export default class TxCrossChainActiveStatusView extends Component {
   constructor(props) {
@@ -28,40 +28,42 @@ export default class TxCrossChainActiveStatusView extends Component {
   }
 
   render() {
-    var txData = this.props.data.crosschainTx;
+    const txData = this.props.data.crosschainTx;
 
     if (!txData) {
       return <div />;
     }
 
-    var sendingChain = TokenListManager.getNetworkById(
+    const sendingChain = TokenListManager.getNetworkById(
       txData.invariant.sendingChainId,
     );
-    var receivingChain = TokenListManager.getNetworkById(
+    const receivingChain = TokenListManager.getNetworkById(
       txData.invariant.receivingChainId,
     );
-    var sendingAsset = TokenListManager.findTokenById(
+    const sendingAsset = TokenListManager.findTokenById(
       Utils.getAddress(txData.invariant.sendingAssetId),
       sendingChain,
     );
-    var receivingAsset = TokenListManager.findTokenById(
+    const receivingAsset = TokenListManager.findTokenById(
       Utils.getAddress(txData.invariant.receivingAssetId),
       receivingChain,
     );
 
-    var input = txData.sending.amount
+    const input = txData.sending.amount
       ? numeral(
           Utils.formatUnits(txData.sending.amount, sendingAsset.decimals),
         ).format('0.0000a')
       : '--';
 
-    var icon, lang, clazz;
+    let icon;
+    let lang;
+    let clazz;
 
-    var isActionNeeded =
+    const isActionNeeded =
       this.props.data.status === 'ReceiverTransactionPrepared';
 
     if (isActionNeeded) {
-      icon = <ion-icon name="information-circle"></ion-icon>;
+      icon = <ion-icon name="information-circle" />;
       lang = <div>ACTION NEEDED</div>;
       clazz = 'action';
     } else {

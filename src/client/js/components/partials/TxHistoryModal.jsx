@@ -16,13 +16,14 @@ import TxStatusView from './TxStatusView';
 import TxCrossChainHistoricalStatusView from './TxCrossChainHistoricalStatusView';
 import TxCrossChainActiveStatusView from './TxCrossChainActiveStatusView';
 import CrossChainToggle from './swap/CrossChainToggle';
+import txBridgeManager from '../../utils/txBridgeManager';
 
 const TxHistoryModal = () => {
   const [refresh, setRefresh] = useState(Date.now());
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSingleChain, setShowSingleChain] = useState(false);
-  // const [txAllBridgesHistoryQueue, setTxAllBridgesHistoryQueue] = useState([]);
+  const [txAllBridgesHistoryQueue, setTxAllBridgesHistoryQueue] = useState([]);
 
   const handleUpdate = () => {
     setRefresh(Date.now());
@@ -81,7 +82,7 @@ const TxHistoryModal = () => {
   // implement active to cbridge as well
   const xActiveQueue = Nxtp.getAllActiveTxs();
 
-  const xAllHistQueue = Nxtp.getAllHistoricalTxs().sort(
+  const xAllHistQueue = txAllBridgesHistoryQueue.sort(
     (first, second) => second.preparedTimestamp - first.preparedTimestamp,
   );
 
@@ -100,6 +101,11 @@ const TxHistoryModal = () => {
 
     return () => subUpdate.unsubscribe();
   }, []);
+
+  useEffect(async () => {
+    const resp = await txBridgeManager.getAllTxHistory();
+    setTxAllBridgesHistoryQueue(resp);
+  }, [loading]);
 
   return (
     <div className={classnames('modal', { 'is-active': open })}>

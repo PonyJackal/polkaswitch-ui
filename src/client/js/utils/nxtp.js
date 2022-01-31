@@ -391,7 +391,9 @@ window.NxtpUtils = {
         receivingChainId,
       );
 
-      const distBN = _.map(expectedReturn.distribution, (e) => window.ethers.utils.parseUnits(`${e}`, 'wei'));
+      const distBN = _.map(expectedReturn.distribution, (e) =>
+        window.ethers.utils.parseUnits(`${e}`, 'wei'),
+      );
 
       // TODO missing the options i.e { gasprice, value }
       callData = aggregator.encodeFunctionData('swap', [
@@ -463,12 +465,13 @@ window.NxtpUtils = {
       ...sending,
     };
 
-    const receivingTxData = typeof receiving === 'object'
-      ? {
-        ...invariant,
-        ...receiving,
-      }
-      : undefined;
+    const receivingTxData =
+      typeof receiving === 'object'
+        ? {
+            ...invariant,
+            ...receiving,
+          }
+        : undefined;
 
     const finish = await this._sdk.fulfillTransfer({
       bidSignature,
@@ -480,8 +483,8 @@ window.NxtpUtils = {
     console.log('finish: ', finish);
 
     if (
-      finish.metaTxResponse?.transactionHash
-      || finish.metaTxResponse?.transactionHash === ''
+      finish.metaTxResponse?.transactionHash ||
+      finish.metaTxResponse?.transactionHash === ''
     ) {
       this.removeActiveTx(receivingTxData.transactionId);
     }
@@ -490,11 +493,11 @@ window.NxtpUtils = {
   },
 
   getAllActiveTxs() {
-    return this._activeTxs.map((x) => x);
+    return this._activeTxs;
   },
 
   getAllHistoricalTxs() {
-    return this._historicalTxs.map((x) => x);
+    return this._historicalTxs;
   },
 };
 
