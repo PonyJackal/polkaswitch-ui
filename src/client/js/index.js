@@ -1,11 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './components/App';
+import * as Sentry from '@sentry/react';
 import _ from 'underscore';
 import { ethers } from 'ethers';
 import BN from 'bignumber.js';
-import * as Sentry from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
+import App from './components/App';
+
+// import after NETWORK_CONFIGs is initialized
+import Wallet from './utils/wallet';
+import TokenListManager from './utils/tokenList';
+import SwapFn from './utils/swapFn';
+import Nxtp from './utils/nxtp';
+import HopUtils from './utils/hop';
+import TxQueue from './utils/txQueue';
+import Storage from './utils/storage';
 
 const IS_MAIN_NETWORK = process.env.IS_MAIN_NETWORK === 'true';
 
@@ -14,8 +23,7 @@ if (process.env.IS_PRODUCTION) {
     dsn: process.env.SENTRY_JS_DSN,
     environment: IS_MAIN_NETWORK ? 'production' : 'development',
     integrations: [new Integrations.BrowserTracing()],
-    release:
-      process.env.HEROKU_APP_NAME + '-' + process.env.HEROKU_RELEASE_VERSION,
+    release: `${process.env.HEROKU_APP_NAME}-${process.env.HEROKU_RELEASE_VERSION}`,
 
     // Set tracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
@@ -35,26 +43,17 @@ if (IS_MAIN_NETWORK) {
   console.log('Loading TEST config...');
 }
 
-var config = await fetch(
+const config = await fetch(
   IS_MAIN_NETWORK ? '/config/main.config.json' : '/config/test.config.json',
 );
 window.NETWORK_CONFIGS = await config.json();
 window.MAX_RETRIES = process.env.IS_PRODUCTION ? 3 : 1;
 
-// import after NETWORK_CONFIGs is initialized
-import Wallet from './utils/wallet';
-import TokenListManager from './utils/tokenList';
-import SwapFn from './utils/swapFn';
-import Nxtp from './utils/nxtp';
-import HopUtils from './utils/hop';
-import TxQueue from './utils/txQueue';
-import Storage from './utils/storage';
-
 // pre-load and collase/parallelize all our external JSON config loading
 // to reduce initial app load times
 await Promise.all([
   Wallet.initializeAbis(),
-  TokenListManager.initializeTokenLists()
+  TokenListManager.initializeTokenLists(),
 ]);
 
 await Storage.initialize();
