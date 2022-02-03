@@ -43,6 +43,7 @@ window.CBridgeUtils = {
 
   resetClient() {
     console.log('Celer Bridge grpc client reset');
+    console.log('celer refund');
 
     if (this._client) {
       // detach all listeners
